@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Rectangular Billiard (2 × 1)</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: #f4f4f4;
+    }
+    canvas {
+        background: white;
+        border: 1px solid #ccc;
+        margin-top: 15px;
+    }
+    input {
+        padding: 6px;
+        margin: 5px;
+        width: 180px;
+    }
+    button {
+        padding: 6px 14px;
+        cursor: pointer;
+    }
+    #output {
+        margin-top: 10px;
+        font-family: monospace;
+        white-space: pre-line;
+    }
+</style>
+</head>
+<body>
+
+<h2>Rectangular Billiard (2 × 1)</h2>
+
+<label>Slope:</label>
+<input id="slopeInput" value="1/4">
+
+<button onclick="runSimulation()">Run</button>
+
+<div id="output"></div>
+
+<canvas id="canvas" width="700" height="400"></canvas>
+
+<script>
+// -------------------------------------------------
+// Fixed rectangle: width A=2, height B=1
+// -------------------------------------------------
+const A = 2.0;
+const B = 1.0;
+
+function parseSlope(s) {
+    s = s.trim().toLowerCase();
+
+    if (["inf","infty","infinity","∞"].includes(s)) {
+        return Infinity;
+    }
+
+    return Function('"use strict"; return (' + s + ')')();
+}
+
+function simulateBilliard(x0, y0, slope, maxBounces=200, tol=1e-10) {
+
+    let vx0, vy0;
+
+    if (slope === 0) {
+        vx0 = 1.0; vy0 = 0.0;
+    } else if (slope === Infinity) {
+        vx0 = 0.0; vy0 = 1.0;
+    } else {
+        vx0 = 1.0 / Math.sqrt(1 + slope*slope);
+        vy0 = slope / Math.sqrt(1 + slope*slope);
+    }
+
+    let x = x0, y = y0;
+    let vx = vx0, vy = vy0;
+
+    let pts = [[x,y]];
+    let cornerHit = false;
+
+    for (let k=0; k<maxBounces; k++) {
+
+        let tx, ty;
+
+        if (Math.abs(vx) < tol) tx = Infinity;
+        else if (vx > 0) tx = (A - x) / vx;
+        else tx = (0 - x) / vx;
+
+        if (Math.abs(vy) < tol) ty = Infinity;
+        else if (vy > 0) ty = (B - y) / vy;
+        else ty = (0 - y) / vy;
+
+        let t = Math.min(tx, ty);
+        if (!isFinite(t) || t <= tol) break;
+
+        let xNew = x + vx*t;
+        let yNew = y + vy*t;
+
+        if (Math.abs(xNew) < 1e-12) xNew = 0;
+        if (Math.abs(xNew - A) < 1e-12) xNew = A;
+        if (Math.abs(yNew) < 1e-12) yNew = 0;
+        if (Math.abs(yNew - B) < 1e-12) yNew = B;
+
+        pts.push([xNew,yNew]);
+
+        let hitV = Math.abs(t - tx) < 1e-10;
+        let hitH = Math.abs(t - ty) < 1e-10;
+
+        if (hitV && hitH) {
+            cornerHit = true;
+            x = xNew; y = yNew;
+            break;
+        }
+
+        if (hitV) vx = -vx;
+        if (hitH) vy = -vy;
+
+        x = xNew; y = yNew;
+
+        if (
+            Math.abs(x - x0) < 1e-8 &&
+            Math.abs(y - y0) < 1e-8 &&
+            Math.abs(vx - vx0) < 1e-8 &&
+            Math.abs(vy - vy0) < 1e-8
+        ) {
+            return {pts, bounces:k+1, returned:true, corner:cornerHit};
+        }
+    }
+
+    return {pts, bounces:pts.length-1, returned:false, corner:cornerHit};
+}
+
+function draw(points, slope) {
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const margin = 50;
+    const scale = Math.min(
+        (canvas.width - 2*margin)/A,
+        (canvas.height - 2*margin)/B
+    );
+
+    function toCanvas(x,y){
+        return [
+            margin + x*scale,
+            canvas.height - (margin + y*scale)
+        ];
+    }
+
+    // Draw rectangle
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "black";
+
+    let p0 = toCanvas(0,0);
+    let p1 = toCanvas(A,0);
+    let p2 = toCanvas(A,B);
+    let p3 = toCanvas(0,B);
+
+    ctx.moveTo(...p0);
+    ctx.lineTo(...p1);
+    ctx.lineTo(...p2);
+    ctx.lineTo(...p3);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Draw trajectory
+    ctx.beginPath();
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 1.6;
+
+    let first = toCanvas(points[0][0], points[0][1]);
+    ctx.moveTo(...first);
+
+    for (let i=1;i<points.length;i++){
+        let pt = toCanvas(points[i][0], points[i][1]);
+        ctx.lineTo(...pt);
+    }
+    ctx.stroke();
+
+    // Start point (red)
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.arc(first[0], first[1], 5, 0, 2*Math.PI);
+    ctx.fill();
+}
+
+function runSimulation(){
+
+    const x0 = 0.3;
+    const y0 = 0.4;
+
+    try {
+        const slope = parseSlope(
+            document.getElementById("slopeInput").value
+        );
+
+        const result = simulateBilliard(x0,y0,slope);
+
+        draw(result.pts, slope);
+
+        let text = "";
+        text += "Rectangle: 2 × 1\n";
+        text += "Start: (0.3, 0.4)\n";
+        text += "Bounces simulated: " + result.bounces + "\n";
+
+        if (result.corner)
+            text += "⚠️ Hit a corner (reflection ambiguous).\n";
+
+        if (result.returned)
+            text += "✅ Closed orbit detected with period "
+                    + result.bounces + " bounces.\n";
+        else
+            text += "— Did not return to start with same direction.\n";
+
+        document.getElementById("output").textContent = text;
+
+    } catch(e) {
+        alert("Invalid slope expression.");
+    }
+}
+
+runSimulation();
+</script>
+
+</body>
+</html>
