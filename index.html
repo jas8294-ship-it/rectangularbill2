@@ -313,10 +313,7 @@ function run(){
   out += `Slope input: "${slopeStr}"  =>  ${slope === Infinity ? "Infinity" : slope}\n`;
   out += `Bounces simulated: ${sim.bounces}\n\n`;
 
-  if(sim.corner) out += `⚠️ Hit a corner (reflection is ambiguous there).\n`;
-  if(sim.returned) out += `✅ Closed orbit detected with period ${sim.bounces} bounces.\n`;
-  else out += `— Did not return to the start with the same direction (within max_bounces).\n`;
-
+ 
   const status = sim.returned
     ? `<span class="ok">Closed orbit detected.</span> period = <b>${sim.bounces}</b> bounces.`
     : `<span class="warn">Not closed (within max bounces).</span>`;
