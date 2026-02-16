@@ -207,14 +207,7 @@ function runSimulation(){
         text += "Start: (0.3, 0.4)\n";
         text += "Bounces simulated: " + result.bounces + "\n";
 
-        if (result.corner)
-            text += "⚠️ Hit a corner (reflection ambiguous).\n";
-
-        if (result.returned)
-            text += "✅ Closed orbit detected with period "
-                    + result.bounces + " bounces.\n";
-        else
-            text += "— Did not return to start with same direction.\n";
+       
 
         document.getElementById("output").textContent = text;
 
