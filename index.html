@@ -313,10 +313,6 @@ function run(){
   out += `Slope input: "${slopeStr}"  =>  ${slope === Infinity ? "Infinity" : slope}\n`;
   out += `Bounces simulated: ${sim.bounces}\n\n`;
 
- 
-  const status = sim.returned
-    ? `<span class="ok">Closed orbit detected.</span> period = <b>${sim.bounces}</b> bounces.`
-    : `<span class="warn">Not closed (within max bounces).</span>`;
 
   summaryEl.innerHTML = status + (sim.corner ? ` <span class="warn">Corner hit.</span>` : "");
 
